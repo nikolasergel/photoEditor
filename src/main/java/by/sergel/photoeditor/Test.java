@@ -1,4 +1,4 @@
-package by.sergel;
+package by.sergel.photoeditor;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

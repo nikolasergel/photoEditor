@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.thymeleaf.org ">
+<head>
+    <meta charset="UTF-8">
+    <title>Photo Editor</title>
+</head>
+<body>
+
+    <form action="/" method="post">
+        <div><input type="text" name="height" id="height"><label for="height">Height</label></div>
+        <div><input type="text" name="width" id="width"><label for="width">Width</label></div>
+        <button type="submit">Send</button>
+    </form>
+    <img alt="work" th:src=${@environment.getProperty('thymeleaf.image.path')}>
+</body>
+</html>
