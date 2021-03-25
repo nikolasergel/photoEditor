@@ -1,31 +1,35 @@
 package by.sergel.photoeditor;
 
-import org.springframework.scheduling.concurrent.ScheduledExecutorTask;
+import by.sergel.photoeditor.exception.NotBinaryImageException;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
+
 
 public class BinaryImage {
     private BufferedImage bufferedImage;
     private int[][]matrix;
     private int N;
     private int M;
-    private int[][]halftoneMatrix;
-    private List<Integer> gradations;
+    private double[][]halftoneMatrix;
+    private List<Double> gradations;
     private int adding;
 
 
-    public BinaryImage(String imagePath) throws IOException {
-        this.bufferedImage = ImageIO.read(new File(imagePath));
+    public BinaryImage(File image) throws IOException, NotBinaryImageException {
+        this.bufferedImage = ImageIO.read(image);
         this.matrix = getBinaryMatrix();
         this.N = matrix.length;
         this.M = matrix[0].length;
+        if(!isBinary()){
+            throw new NotBinaryImageException();
+        }
+
     }
 
     public int[][] getMatrix(){
@@ -51,7 +55,7 @@ public class BinaryImage {
                 }
             }
         }
-        return matrix;
+        return matrix.clone();
     }
 
     protected void testEditMatrix(String path) throws IOException {
@@ -69,21 +73,20 @@ public class BinaryImage {
         }
     }
 
-    public int[][] getHalftoneMatrix(){
-        if(halftoneMatrix == null){
-            halftoneMatrix = new int[N][M];
-            int[][] ret = new int[N][M];
+    public double[][] getHalftoneMatrix(){
+        if(halftoneMatrix == null || halftoneMatrix.length == 0){
+            halftoneMatrix = new double[N][M];
             for(int i = 0; i < N; i++){
                 for(int j = 0; j < M; j++){
-                    ret[i][j] = getMinDistance(matrix, i, j);
+                    halftoneMatrix[i][j] = getMinDistance(matrix, i, j);
                 }
             }
         }
-        return halftoneMatrix;
+        return halftoneMatrix.clone();
     }
 
-    private int getMinDistance(int[][] matrix, int x, int y){
-        int ret = Integer.MAX_VALUE;
+    private double getMinDistance(int[][] matrix, int x, int y){
+        double ret = Double.MAX_VALUE;
         for(int i = 0; i < N; i++){
             for(int j = 0; j < M; j++){
                 if(matrix[x][y] != matrix[i][j]){
@@ -100,25 +103,43 @@ public class BinaryImage {
     public BufferedImage getHalftoneImage(){
         getHalftoneMatrix();
         initGradations();
-        BufferedImage bufferedImage = new BufferedImage(N, M, BufferedImage.TYPE_USHORT_GRAY);
+        BufferedImage bufferedImage = new BufferedImage(N, M, BufferedImage.TYPE_3BYTE_BGR);
         for(int i = 0; i < N; i++){
             for(int j = 0; j < M; j++){
+
                 int colorValue = gradations.indexOf(halftoneMatrix[i][j]) * adding;
-                Color color = new Color(colorValue, colorValue, colorValue);
-                bufferedImage.setRGB(i, j, color.getRGB());
+                bufferedImage.setRGB(i, j, new Color(colorValue, colorValue, colorValue).getRGB());
             }
         }
         return bufferedImage;
     }
 
-    private void initGradations(){
-        Set<Integer> set = new TreeSet<>();
-        for(int[] i : halftoneMatrix){
-            for(int j : i){
-                gradations.add(j);
+    public boolean isBinary(){
+        Set<Integer> set = new HashSet<>();
+        for(int[] i : matrix) {
+            for (int j : i) {
+                set.add(j);
+            }
+        }
+        set.forEach(el -> System.out.println("el: " + el));
+        System.out.println("set size: " + set.size());
+        return (set.size() > 0) && (set.size() <= 2);
+    }
+
+    public void initGradations(){
+        Set<Double> set = new TreeSet<>(new Comparator<Double>() {
+            @Override
+            public int compare(Double o1, Double o2) {
+                return o1 < o2 ? 1 : -1;
+            }
+        });
+        for(double[] i : halftoneMatrix){
+            for(double j : i){
+                set.add(j);
             }
         }
         gradations = new ArrayList<>(set);
-        adding = 256 / (gradations.size() + 1);
+
+        adding = 256 / (gradations.size() - 1);
     }
 }
